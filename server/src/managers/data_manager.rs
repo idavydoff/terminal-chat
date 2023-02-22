@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::mpsc::Receiver;
 use std::thread;
 use std::time::Duration;
 use std::str::FromStr;
@@ -41,7 +42,7 @@ pub trait DataManager {
   fn deny_auth(&mut self) -> Result<()>;
   fn auth(&mut self, sygnal: String) -> Result<SygnalType>;
   fn remove_user(&mut self, username: String) -> Result<()>;
-  fn process_messages_pool(&mut self) -> Result<()>;
+  fn process_messages_pool(&mut self, receiver: Receiver<()>) -> Result<()>;
 }
 
 impl DataManager for Manager {
@@ -106,15 +107,12 @@ impl DataManager for Manager {
     Ok(())
   }
 
-  fn process_messages_pool(&mut self) -> Result<()> {
-    let mut timer: i16 = 0;
+  fn process_messages_pool(&mut self, receiver: Receiver<()>) -> Result<()> {
     loop {
-      if timer >= 2500 {
-        if !self.state.get().users.contains_key(&self.connected_user_username.clone().unwrap()) {
-          break;
-        }
-        timer = 0
-      }
+      if let Ok(()) = receiver.try_recv() {
+        break;
+      };
+
       let lock_ref = self.messages_pool.clone();
       let pool_lock = lock_ref.lock();
 
@@ -137,7 +135,6 @@ impl DataManager for Manager {
         }
       }
       thread::sleep(Duration::from_millis(10));
-      timer += 10;
     }
 
     Ok(())

@@ -3,7 +3,7 @@ use std::{
     Error, 
     ErrorKind,
     Write, self, BufRead, BufReader
-  }, time::Duration, thread, net::TcpStream, sync::Arc
+  }, time::Duration, thread, net::TcpStream, sync::{Arc, mpsc::{self, Receiver, Sender}}
 };
 use anyhow::Result;
 use parking_lot::Mutex;
@@ -12,7 +12,7 @@ use crate::{managers::{data_manager::DataManager, types::SygnalType}, messages_p
 
 use super::{manager::Manager, types::SygnalHeader, data_manager::process_incoming_message};
 
-fn process_signals(stream: TcpStream, messages_pool: Arc<Mutex<MessagesPool>>) -> Result<()> {
+fn process_signals(stream: TcpStream, messages_pool: Arc<Mutex<MessagesPool>>, sender: Sender<()>) -> Result<()> {
   let mut reader = BufReader::new(stream.try_clone()?);
   loop {
     let data_from_socket = match read_signal(&mut reader, None) {
@@ -27,6 +27,8 @@ fn process_signals(stream: TcpStream, messages_pool: Arc<Mutex<MessagesPool>>) -
       Err(_) => println!("invalid message")
     };
   }
+
+  sender.send(());
 
   Ok(())
 }
@@ -106,12 +108,14 @@ impl StreamManager for Manager {
     if let SygnalType::Connection = sygnal_type {
       let cloned_stream = self.stream.try_clone()?;
       let cloned_messages_pool = self.messages_pool.clone();
+      let (channel_sender, channel_receiver) = mpsc::channel::<()>();
       thread::spawn(move || -> Result<()> {
-        process_signals(cloned_stream, cloned_messages_pool)?;
+        process_signals(cloned_stream, cloned_messages_pool, channel_sender)?;
+
         Ok(())
       });
       
-      self.process_messages_pool()?;
+      self.process_messages_pool(channel_receiver)?;
     }
 
     self.process_disconnection()?;
