@@ -11,15 +11,15 @@ use std::{
   USER:         KEY 
   SERVER:       AUTH_STATUS
   USER+SERVER:  WITH_MESSAGE
-  USER+SERVER:  SYGNAL_TYPE
+  USER+SERVER:  SIGNAL_TYPE
 */
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParseSygnalDataError;
-impl Error for ParseSygnalDataError {}
-impl fmt::Display for ParseSygnalDataError {
+pub struct ParseSignalDataError;
+impl Error for ParseSignalDataError {}
+impl fmt::Display for ParseSignalDataError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "invalid sygnal data")
+    write!(f, "invalid signal data")
   }
 }
 
@@ -41,47 +41,30 @@ impl fmt::Display for IncomingMessageError {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ConsumerConnectionError;
-impl Error for ConsumerConnectionError {}
-impl fmt::Display for ConsumerConnectionError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "consumer connection failure")
-  }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ProducerConnectionError;
-impl Error for ProducerConnectionError {}
-impl fmt::Display for ProducerConnectionError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "producer connection failure")
-  }
-}
 
 #[derive(Debug, Clone, Copy)]
-pub enum SygnalType {
+pub enum SignalType {
   Connection,
   NewMessage,
 }
 
-impl FromStr for SygnalType {
-  type Err = ParseSygnalDataError;
+impl FromStr for SignalType {
+  type Err = ParseSignalDataError;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     match s {
-      "CONNECTION" => Ok(SygnalType::Connection),
-      "NEW_MESSAGE" => Ok(SygnalType::NewMessage),
-      _ => Err(ParseSygnalDataError)
+      "CONNECTION" => Ok(SignalType::Connection),
+      "NEW_MESSAGE" => Ok(SignalType::NewMessage),
+      _ => Err(ParseSignalDataError)
     }
   }
 }
 
-impl ToString for SygnalType {
+impl ToString for SignalType {
   fn to_string(&self) -> String {
     match self {
-      SygnalType::Connection => "CONNECTION".to_owned(),
-      SygnalType::NewMessage => "NEW_MESSAGE".to_owned(),
+      SignalType::Connection => "CONNECTION".to_owned(),
+      SignalType::NewMessage => "NEW_MESSAGE".to_owned(),
     }
   }
 }
@@ -94,13 +77,13 @@ pub enum AuthStatus {
 }
 
 impl FromStr for AuthStatus {
-  type Err = ParseSygnalDataError;
+  type Err = ParseSignalDataError;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     match s {
       "ACCEPTED" => Ok(AuthStatus::ACCEPTED),
       "DENIED" => Ok(AuthStatus::DENIED),
-      _ => Err(ParseSygnalDataError)
+      _ => Err(ParseSignalDataError)
     }
   }
 }
@@ -115,79 +98,79 @@ impl ToString for AuthStatus {
 }
 
 
-pub enum SygnalHeader {
+pub enum SignalHeader {
   Username(String),
   Password(String),
   Key(String),
   AuthStatus(AuthStatus),
-  SygnalType(SygnalType),
+  SignalType(SignalType),
   WithMessage,
   ServerMessage
 }
 
-impl FromStr for SygnalHeader {
-  type Err = ParseSygnalDataError;
+impl FromStr for SignalHeader {
+  type Err = ParseSignalDataError;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     let (header, value) = s.split_once(':').unwrap_or((s, s));
 
     match header {
-      "USERNAME" => Ok(SygnalHeader::Username(value.trim().to_owned())),
-      "PASSWORD" => Ok(SygnalHeader::Password(value.trim().to_owned())),
-      "KEY" => Ok(SygnalHeader::Key(value.trim().to_owned())),
+      "USERNAME" => Ok(SignalHeader::Username(value.trim().to_owned())),
+      "PASSWORD" => Ok(SignalHeader::Password(value.trim().to_owned())),
+      "KEY" => Ok(SignalHeader::Key(value.trim().to_owned())),
       "AUTH_STATUS" => {
         match AuthStatus::from_str(value.trim()) {
-          Ok(v) => return Ok(SygnalHeader::AuthStatus(v)),
-          Err(_) => Err(ParseSygnalDataError)
+          Ok(v) => return Ok(SignalHeader::AuthStatus(v)),
+          Err(_) => Err(ParseSignalDataError)
         }
       },
-      "SYGNAL_TYPE" => {
-        match SygnalType::from_str(value.trim()) {
-          Ok(v) => return Ok(SygnalHeader::SygnalType(v)),
-          Err(_) => Err(ParseSygnalDataError)
+      "SIGNAL_TYPE" => {
+        match SignalType::from_str(value.trim()) {
+          Ok(v) => return Ok(SignalHeader::SignalType(v)),
+          Err(_) => Err(ParseSignalDataError)
         }
       }
-      "WITH_MESSAGE" => Ok(SygnalHeader::WithMessage),
-      "SERVER_MESSAGE" => Ok(SygnalHeader::ServerMessage),
-      _ => Err(ParseSygnalDataError)
+      "WITH_MESSAGE" => Ok(SignalHeader::WithMessage),
+      "SERVER_MESSAGE" => Ok(SignalHeader::ServerMessage),
+      _ => Err(ParseSignalDataError)
     }
   }
 }
 
-impl ToString for SygnalHeader {
+impl ToString for SignalHeader {
   fn to_string(&self) -> String {
     match self {
-      SygnalHeader::Username(v) => format!("USERNAME: {v}\r\n"),
-      SygnalHeader::Password(v) => format!("PASSWORD: {v}\r\n"),
-      SygnalHeader::Key(v) => format!("KEY: {v}\r\n"),
-      SygnalHeader::AuthStatus(v) => format!("AUTH_STATUS: {}\r\n", v.to_string()),
-      SygnalHeader::SygnalType(v) => format!("SYGNAL_TYPE: {}\r\n", v.to_string()),
-      SygnalHeader::WithMessage => "WITH_MESSAGE\r\n".to_owned(),
-      SygnalHeader::ServerMessage => "SERVER_MESSAGE\r\n".to_owned()
+      SignalHeader::Username(v) => format!("USERNAME: {v}\r\n"),
+      SignalHeader::Password(v) => format!("PASSWORD: {v}\r\n"),
+      SignalHeader::Key(v) => format!("KEY: {v}\r\n"),
+      SignalHeader::AuthStatus(v) => format!("AUTH_STATUS: {}\r\n", v.to_string()),
+      SignalHeader::SignalType(v) => format!("SIGNAL_TYPE: {}\r\n", v.to_string()),
+      SignalHeader::WithMessage => "WITH_MESSAGE\r\n".to_owned(),
+      SignalHeader::ServerMessage => "SERVER_MESSAGE\r\n".to_owned()
     }
   }
 }
 
 #[derive(Debug, Clone)]
-pub struct SygnalData {
+pub struct SignalData {
   pub username: Option<String>,
   pub password: Option<String>,
   pub key: Option<String>,
   pub auth_status: Option<AuthStatus>,
-  pub sygnal_type: Option<SygnalType>,
+  pub signal_type: Option<SignalType>,
   pub with_message: bool,
   pub message: Option<String>,
   pub server_message: bool
 }
 
-impl SygnalData {
-  pub fn new(headers: Vec<SygnalHeader>, message: Option<&str>) -> SygnalData {
-    let mut data = SygnalData {
+impl SignalData {
+  pub fn new(headers: Vec<SignalHeader>, message: Option<&str>) -> SignalData {
+    let mut data = SignalData {
       username: None,
       password: None,
       key: None,
       auth_status: None,
-      sygnal_type: None,
+      signal_type: None,
       with_message: false,
       message: None,
       server_message: false
@@ -195,26 +178,26 @@ impl SygnalData {
 
     for header in headers {
       match header {
-        SygnalHeader::Username(v) => {
+        SignalHeader::Username(v) => {
           data.username = Some(v);
         },
-        SygnalHeader::Password(v) => {
+        SignalHeader::Password(v) => {
           data.password = Some(v);
         },
-        SygnalHeader::Key(v) => {
+        SignalHeader::Key(v) => {
           data.key = Some(v);
         },
-        SygnalHeader::AuthStatus(v) => {
+        SignalHeader::AuthStatus(v) => {
           data.auth_status = Some(v);
         },
-        SygnalHeader::SygnalType(v) => {
-          data.sygnal_type = Some(v);
+        SignalHeader::SignalType(v) => {
+          data.signal_type = Some(v);
         },
-        SygnalHeader::WithMessage => {
+        SignalHeader::WithMessage => {
           data.with_message = true;
           data.message = Some(message.unwrap_or("").to_owned());
         },
-        SygnalHeader::ServerMessage => {
+        SignalHeader::ServerMessage => {
           data.server_message = true;
         }
       }
@@ -224,47 +207,47 @@ impl SygnalData {
   }
 }
 
-impl FromStr for SygnalData {
-  type Err = ParseSygnalDataError;
+impl FromStr for SignalData {
+  type Err = ParseSignalDataError;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
-    let mut data = SygnalData { 
+    let mut data = SignalData { 
       username: None, 
       password: None, 
       key: None, 
       auth_status: None, 
-      sygnal_type: None,
+      signal_type: None,
       with_message: false,
       message: None,
       server_message: false,
     };
     let splitted = s.split("\r\n");
     for string in splitted {
-      let header = match SygnalHeader::from_str(string) {
+      let header = match SignalHeader::from_str(string) {
         Ok(v) => v,
         Err(_) => continue
       };
 
       match header {
-        SygnalHeader::Username(v) => {
+        SignalHeader::Username(v) => {
           data.username = Some(v);
         },
-        SygnalHeader::Password(v) => {
+        SignalHeader::Password(v) => {
           data.password = Some(v);
         },
-        SygnalHeader::Key(v) => {
+        SignalHeader::Key(v) => {
           data.key = Some(v);
         },
-        SygnalHeader::AuthStatus(v) => {
+        SignalHeader::AuthStatus(v) => {
           data.auth_status = Some(v);
         },
-        SygnalHeader::SygnalType(v) => {
-          data.sygnal_type = Some(v);
+        SignalHeader::SignalType(v) => {
+          data.signal_type = Some(v);
         }
-        SygnalHeader::WithMessage => {
+        SignalHeader::WithMessage => {
           data.with_message = true;
         },
-        SygnalHeader::ServerMessage => {
+        SignalHeader::ServerMessage => {
           data.server_message = true;
         }
       }
@@ -282,40 +265,43 @@ impl FromStr for SygnalData {
         }
       }
       else {
-        return Err(ParseSygnalDataError);
+        return Err(ParseSignalDataError);
       }
     }
 
-    if let None = data.sygnal_type {
-      return Err(ParseSygnalDataError)
+    if let None = data.signal_type {
+      return Err(ParseSignalDataError)
     }
 
     Ok(data)
   }
 }
 
-impl ToString for SygnalData {
+impl ToString for SignalData {
   fn to_string(&self) -> String {
     let mut res_str = String::new();
 
     if let Some(v) = &self.username {
-      res_str.push_str(&SygnalHeader::Username(v.to_owned()).to_string());
+      res_str.push_str(&SignalHeader::Username(v.to_owned()).to_string());
     }
     if let Some(v) = &self.password {
-      res_str.push_str(&SygnalHeader::Password(v.to_owned()).to_string());
+      res_str.push_str(&SignalHeader::Password(v.to_owned()).to_string());
     }
     if let Some(v) = &self.key {
-      res_str.push_str(&SygnalHeader::Key(v.to_owned()).to_string());
+      res_str.push_str(&SignalHeader::Key(v.to_owned()).to_string());
     }
     if let Some(v) = &self.auth_status {
-      res_str.push_str(&SygnalHeader::AuthStatus(v.clone()).to_string());
+      res_str.push_str(&SignalHeader::AuthStatus(v.clone()).to_string());
     }
-    if let Some(v) = &self.sygnal_type {
-      res_str.push_str(&SygnalHeader::SygnalType(v.clone()).to_string());
+    if let Some(v) = &self.signal_type {
+      res_str.push_str(&SignalHeader::SignalType(v.clone()).to_string());
+    }
+    if self.server_message {
+      res_str.push_str(&SignalHeader::ServerMessage.to_string());
     }
     if self.with_message {
       if let Some(v) = &self.message {
-        res_str.push_str(&SygnalHeader::WithMessage.to_string());
+        res_str.push_str(&SignalHeader::WithMessage.to_string());
         res_str.push_str("\r\n");
         res_str.push_str(&v);
       }

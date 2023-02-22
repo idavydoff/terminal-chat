@@ -13,11 +13,11 @@ use termion::{
 use crate::{
   settings::Settings, 
   state::State, 
-  connection::{Connection, self}, 
+  connection::Connection, 
   types::{
-    SygnalType, 
-    SygnalData, 
-    SygnalHeader
+    SignalType, 
+    SignalData, 
+    SignalHeader
   }
 };
 
@@ -58,10 +58,10 @@ impl Service {
             break;
           }
         };
-        let sygnal = SygnalData::from_str(&data_from_socket);
+        let signal = SignalData::from_str(&data_from_socket);
         let mut messages = messages.lock();
-        if let Ok(s) = sygnal {
-          if let Some(SygnalType::NewMessage) = s.sygnal_type {
+        if let Ok(s) = signal {
+          if let Some(SignalType::NewMessage) = s.signal_type {
             if s.server_message {
               messages.push(
                 format!(
@@ -163,11 +163,11 @@ impl Service {
               continue;
             }
             self.state.user_input.lock().clear();
-            let signal = SygnalData::new(
+            let signal = SignalData::new(
               vec![
-                SygnalHeader::SygnalType(SygnalType::NewMessage),
-                SygnalHeader::WithMessage,
-                SygnalHeader::Username(self.state.username.to_owned())
+                SignalHeader::SignalType(SignalType::NewMessage),
+                SignalHeader::WithMessage,
+                SignalHeader::Username(self.state.username.to_owned())
               ],
               Some(&ms)
             );

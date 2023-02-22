@@ -1,6 +1,6 @@
 mod manager;
 mod stream_manager;
 mod data_manager;
-mod types;
+pub mod types;
 
 pub use manager::Manager;

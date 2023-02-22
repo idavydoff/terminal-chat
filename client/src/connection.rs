@@ -9,9 +9,9 @@ use std::{
 };
 
 use crate::types::{
-  SygnalType, 
-  SygnalHeader, 
-  SygnalData,
+  SignalType, 
+  SignalHeader, 
+  SignalData,
   AuthStatus
 };
 
@@ -22,10 +22,10 @@ pub struct Connection {
 
 impl Connection {
   pub fn new(address: &str, username: &str) -> io::Result<Connection> {
-    let signal = SygnalData::new(
+    let signal = SignalData::new(
       vec![
-        SygnalHeader::SygnalType(SygnalType::Connection),
-        SygnalHeader::Username(username.to_owned())
+        SignalHeader::SignalType(SignalType::Connection),
+        SignalHeader::Username(username.to_owned())
       ],
       None
     );
@@ -77,7 +77,7 @@ impl Connection {
       res_line.push_str(&buf_line);
   
       if res_line.ends_with("\r\n\r\n"){
-        if !res_line.contains(&SygnalHeader::WithMessage.to_string()) || headers_read {
+        if !res_line.contains(&SignalHeader::WithMessage.to_string()) || headers_read {
           break;
         }
         headers_read = true;

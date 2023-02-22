@@ -14,15 +14,15 @@ use super::manager::Manager;
 use super::stream_manager::StreamManager;
 use super::types::{
   AuthStatus, 
-  SygnalData, 
-  SygnalHeader, 
+  SignalData, 
+  SignalHeader, 
   AuthConnectionError,
   IncomingMessageError,
-  SygnalType
+  SignalType
 };
 
-pub fn process_incoming_message(messages_pool: Arc<Mutex<MessagesPool>>, sygnal: String) -> Result<()> {
-  let data = SygnalData::from_str(&sygnal)?;
+pub fn process_incoming_message(messages_pool: Arc<Mutex<MessagesPool>>, signal: String) -> Result<()> {
+  let data = SignalData::from_str(&signal)?;
 
   if !data.with_message || data.username.is_none() {
     return Err(IncomingMessageError.into())
@@ -37,18 +37,17 @@ pub fn process_incoming_message(messages_pool: Arc<Mutex<MessagesPool>>, sygnal:
 
   Ok(())
 }
-
 pub trait DataManager {
   fn deny_auth(&mut self) -> Result<()>;
-  fn auth(&mut self, sygnal: String) -> Result<SygnalType>;
+  fn auth(&mut self, signal: String) -> Result<SignalType>;
   fn remove_user(&mut self, username: String) -> Result<()>;
   fn process_messages_pool(&mut self, receiver: Receiver<()>) -> Result<()>;
 }
 
 impl DataManager for Manager {
   fn deny_auth(&mut self) -> Result<()> {
-    let response = SygnalData::new(
-      vec![SygnalHeader::AuthStatus(AuthStatus::DENIED)],
+    let response = SignalData::new(
+      vec![SignalHeader::AuthStatus(AuthStatus::DENIED)],
       None
     );
 
@@ -56,11 +55,11 @@ impl DataManager for Manager {
     Ok(())
   }
 
-  fn auth(&mut self, sygnal: String) -> Result<SygnalType> {
-    let data = SygnalData::from_str(&sygnal)?;
+  fn auth(&mut self, signal: String) -> Result<SignalType> {
+    let data = SignalData::from_str(&signal)?;
 
-    match data.sygnal_type.unwrap() {
-        SygnalType::Connection => {
+    match data.signal_type.unwrap() {
+        SignalType::Connection => {
           if let None = data.username {
             return Err(AuthConnectionError.into());
           }
@@ -83,13 +82,13 @@ impl DataManager for Manager {
 
     self.connected_user_username = Some(data.username.unwrap());
 
-    let response = SygnalData::new(
-      vec![SygnalHeader::AuthStatus(AuthStatus::ACCEPTED)],
+    let response = SignalData::new(
+      vec![SignalHeader::AuthStatus(AuthStatus::ACCEPTED)],
       None
     );
 
     self.send_data(&response.to_string())?;
-    Ok(data.sygnal_type.unwrap())
+    Ok(data.signal_type.unwrap())
   }
 
   fn remove_user(&mut self, username: String) -> Result<()> {
@@ -123,14 +122,14 @@ impl DataManager for Manager {
         }
         for message in v.0 {
           let mut syg_vec = vec![
-            SygnalHeader::SygnalType(SygnalType::NewMessage),
-            SygnalHeader::Username(message.username.clone()),
-            SygnalHeader::WithMessage
+            SignalHeader::SignalType(SignalType::NewMessage),
+            SignalHeader::Username(message.username.clone()),
+            SignalHeader::WithMessage
           ];
           if message.from_server {
-            syg_vec.push(SygnalHeader::ServerMessage);
+            syg_vec.push(SignalHeader::ServerMessage);
           }
-          let response = SygnalData::new(syg_vec,Some(&message.message));
+          let response = SignalData::new(syg_vec,Some(&message.message));
           self.send_data(&response.to_string())?;
         }
       }
