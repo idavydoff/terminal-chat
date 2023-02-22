@@ -44,8 +44,7 @@ impl fmt::Display for IncomingMessageError {
 
 #[derive(Debug, Clone, Copy)]
 pub enum SygnalType {
-  ConnectionConsumer,
-  ConnectionProducer,
+  Connection,
   NewMessage,
 }
 
@@ -54,8 +53,7 @@ impl FromStr for SygnalType {
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     match s {
-      "CONNECTION_CONSUMER" => Ok(SygnalType::ConnectionConsumer),
-      "CONNECTION_PRODUCER" => Ok(SygnalType::ConnectionProducer),
+      "CONNECTION" => Ok(SygnalType::Connection),
       "NEW_MESSAGE" => Ok(SygnalType::NewMessage),
       _ => Err(ParseSygnalDataError)
     }
@@ -65,8 +63,7 @@ impl FromStr for SygnalType {
 impl ToString for SygnalType {
   fn to_string(&self) -> String {
     match self {
-      SygnalType::ConnectionConsumer => "CONNECTION_CONSUMER".to_owned(),
-      SygnalType::ConnectionProducer => "CONNECTION_PRODUCER".to_owned(),
+      SygnalType::Connection => "CONNECTION".to_owned(),
       SygnalType::NewMessage => "NEW_MESSAGE".to_owned(),
     }
   }

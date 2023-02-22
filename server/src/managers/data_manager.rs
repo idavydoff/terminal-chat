@@ -1,10 +1,12 @@
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use std::str::FromStr;
 use anyhow::Result;
+use parking_lot::Mutex;
 use uuid::Uuid;
 
-use crate::messages_pool::PoolMessage;
+use crate::messages_pool::{PoolMessage, MessagesPool};
 use crate::state::UserData;
 
 use super::manager::Manager;
@@ -18,12 +20,28 @@ use super::types::{
   SygnalType
 };
 
+pub fn process_incoming_message(messages_pool: Arc<Mutex<MessagesPool>>, sygnal: String) -> Result<()> {
+  let data = SygnalData::from_str(&sygnal)?;
+
+  if !data.with_message || data.username.is_none() {
+    return Err(IncomingMessageError.into())
+  }
+
+  messages_pool.lock().push(PoolMessage {
+    id: Uuid::new_v4().to_string(),
+    username: data.username.clone().unwrap(),
+    message: data.message.clone().unwrap().trim().to_owned(),
+    from_server: false
+  });
+
+  Ok(())
+}
+
 pub trait DataManager {
   fn deny_auth(&mut self) -> Result<()>;
   fn auth(&mut self, sygnal: String) -> Result<SygnalType>;
   fn remove_user(&mut self, username: String) -> Result<()>;
   fn process_messages_pool(&mut self) -> Result<()>;
-  fn process_incoming_message(&mut self, sygnal: String) -> Result<()>;
 }
 
 impl DataManager for Manager {
@@ -41,24 +59,7 @@ impl DataManager for Manager {
     let data = SygnalData::from_str(&sygnal)?;
 
     match data.sygnal_type.unwrap() {
-        SygnalType::ConnectionConsumer => {
-          if let None = data.username {
-            return Err(AuthConnectionError.into());
-          }
-          let mut state = self.state.get();
-          let user = match state.users.get(&data.username.clone().unwrap()) {
-            Some(v) => v.clone(),
-            None => return Err(AuthConnectionError.into()),
-          };
-          if user.producer_address.is_some() {
-            return Err(AuthConnectionError.into())
-          }
-          state.users.insert(data.username.clone().unwrap(), UserData { 
-            producer_address: Some(self.stream.peer_addr()?.to_string()), 
-            consumer_address: user.consumer_address.clone() 
-          });
-        },
-        SygnalType::ConnectionProducer => {
+        SygnalType::Connection => {
           if let None = data.username {
             return Err(AuthConnectionError.into());
           }
@@ -67,8 +68,7 @@ impl DataManager for Manager {
             return Err(AuthConnectionError.into())
           }
           state.users.insert(data.username.clone().unwrap().to_owned(), UserData {
-            consumer_address: self.stream.peer_addr()?.to_string(),
-            producer_address: None,
+            address: self.stream.peer_addr()?.to_string(),
           });
           self.messages_pool.lock().push(PoolMessage {
             id: Uuid::new_v4().to_string(),
@@ -139,23 +139,6 @@ impl DataManager for Manager {
       thread::sleep(Duration::from_millis(10));
       timer += 10;
     }
-
-    Ok(())
-  }
-
-  fn process_incoming_message(&mut self, sygnal: String) -> Result<()> {
-    let data = SygnalData::from_str(&sygnal)?;
-
-    if !data.with_message || data.username.is_none() {
-      return Err(IncomingMessageError.into())
-    }
-
-    self.messages_pool.lock().push(PoolMessage {
-      id: Uuid::new_v4().to_string(),
-      username: data.username.clone().unwrap(),
-      message: data.message.clone().unwrap().trim().to_owned(),
-      from_server: false
-    });
 
     Ok(())
   }

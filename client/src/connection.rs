@@ -4,7 +4,7 @@ use std::{
     self, 
     Write,
     Error, 
-    ErrorKind, BufRead
+    ErrorKind, BufRead, BufReader
   },
 };
 
@@ -21,10 +21,10 @@ pub struct Connection {
 }
 
 impl Connection {
-  pub fn new(address: &str, connection_type: SygnalType, username: &str) -> io::Result<Connection> {
+  pub fn new(address: &str, username: &str) -> io::Result<Connection> {
     let signal = SygnalData::new(
       vec![
-        SygnalHeader::SygnalType(connection_type),
+        SygnalHeader::SygnalType(SygnalType::Connection),
         SygnalHeader::Username(username.to_owned())
       ],
       None
@@ -38,11 +38,9 @@ impl Connection {
       reader
     };
 
-    if let SygnalType::ConnectionProducer = connection_type {
-      let data_from_socket = instance.read_signal(None)?;
-      if data_from_socket.contains(&AuthStatus::DENIED.to_string()) {
-        return Err(Error::new(ErrorKind::ConnectionAborted, "Access denied"));
-      }
+    let data_from_socket = instance.read_signal(None)?;
+    if data_from_socket.contains(&AuthStatus::DENIED.to_string()) {
+      return Err(Error::new(ErrorKind::ConnectionAborted, "Access denied"));
     }
   
     return Ok(instance)
@@ -87,5 +85,14 @@ impl Connection {
     }
   
     Ok(res_line)
+  }
+}
+
+impl Clone for Connection {
+  fn clone(&self) -> Self {
+    Connection { 
+      stream: self.stream.try_clone().unwrap(), 
+      reader: BufReader::new(self.stream.try_clone().unwrap())
+    }
   }
 }
