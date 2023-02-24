@@ -27,7 +27,7 @@ pub struct State {
 
 impl State {
   pub fn new() -> io::Result<State> {
-    let (sx, rx): (Sender<()>, Receiver<()>) = mpsc::channel();
+    let (sx, rx) = mpsc::channel::<()>();
     let user_input = Arc::new(Mutex::new(String::new()));
     let messages = Arc::new(Mutex::new(Vec::<String>::new()));
 

@@ -15,28 +15,27 @@ use crate::{
   state::State, 
   connection::Connection, 
   types::{
-    SygnalType, 
-    SygnalData, 
-    SygnalHeader
+    SignalType, 
+    SignalData, 
+    SignalHeader
   }
 };
 
 pub struct Service {
-  pub producer: Connection,
+  pub connection: Connection,
   pub settings: Settings,
   pub state: State,
 }
 
 impl Service {
   pub fn run(settings: Settings, state: State) -> io::Result<()> {
-    let producer = Connection::new(
+    let connection = Connection::new(
       &settings.server_address.to_owned(), 
-      SygnalType::ConnectionProducer, 
       &state.username
     )?;
 
     let mut instance = Service {
-      producer,
+      connection,
       settings,
       state
     }.enable_print();
@@ -49,27 +48,20 @@ impl Service {
 
   pub fn proccess_incoming_messages(&self) {
     let messages = self.state.messages.clone();
-    let username = self.state.username.clone();
     let tx = self.state.chat_reload_sender.clone();
-    let server_address = self.settings.server_address.clone();
+    let mut connection = self.connection.clone();
     thread::spawn(move || -> io::Result<()> {
-      let mut consumer = Connection::new(
-        &server_address, 
-        SygnalType::ConnectionConsumer, 
-        &username
-      )?;
-  
       loop {
-        let data_from_socket = match consumer.read_signal(None) {
+        let data_from_socket = match connection.read_signal(None) {
           Ok(v) => v,
           Err(_) => {
             break;
           }
         };
-        let sygnal = SygnalData::from_str(&data_from_socket);
+        let signal = SignalData::from_str(&data_from_socket);
         let mut messages = messages.lock();
-        if let Ok(s) = sygnal {
-          if let Some(SygnalType::NewMessage) = s.sygnal_type {
+        if let Ok(s) = signal {
+          if let Some(SignalType::NewMessage) = s.signal_type {
             if s.server_message {
               messages.push(
                 format!(
@@ -139,7 +131,7 @@ impl Service {
     });
 
     Service { 
-      producer: self.producer,
+      connection: self.connection,
       settings: self.settings, 
       state: State {
         username: self.state.username.clone(),
@@ -171,16 +163,16 @@ impl Service {
               continue;
             }
             self.state.user_input.lock().clear();
-            let signal = SygnalData::new(
+            let signal = SignalData::new(
               vec![
-                SygnalHeader::SygnalType(SygnalType::NewMessage),
-                SygnalHeader::WithMessage,
-                SygnalHeader::Username(self.state.username.to_owned())
+                SignalHeader::SignalType(SignalType::NewMessage),
+                SignalHeader::WithMessage,
+                SignalHeader::Username(self.state.username.to_owned())
               ],
               Some(&ms)
             );
   
-            self.producer.stream.write_all(signal.to_string().as_bytes()).unwrap();
+            self.connection.stream.write_all(signal.to_string().as_bytes()).unwrap();
           },
           termion::event::Key::Backspace => {
             self.state.user_input.lock().pop();

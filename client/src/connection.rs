@@ -4,14 +4,14 @@ use std::{
     self, 
     Write,
     Error, 
-    ErrorKind, BufRead
+    ErrorKind, BufRead, BufReader
   },
 };
 
 use crate::types::{
-  SygnalType, 
-  SygnalHeader, 
-  SygnalData,
+  SignalType, 
+  SignalHeader, 
+  SignalData,
   AuthStatus
 };
 
@@ -21,11 +21,11 @@ pub struct Connection {
 }
 
 impl Connection {
-  pub fn new(address: &str, connection_type: SygnalType, username: &str) -> io::Result<Connection> {
-    let signal = SygnalData::new(
+  pub fn new(address: &str, username: &str) -> io::Result<Connection> {
+    let signal = SignalData::new(
       vec![
-        SygnalHeader::SygnalType(connection_type),
-        SygnalHeader::Username(username.to_owned())
+        SignalHeader::SignalType(SignalType::Connection),
+        SignalHeader::Username(username.to_owned())
       ],
       None
     );
@@ -38,11 +38,9 @@ impl Connection {
       reader
     };
 
-    if let SygnalType::ConnectionProducer = connection_type {
-      let data_from_socket = instance.read_signal(None)?;
-      if data_from_socket.contains(&AuthStatus::DENIED.to_string()) {
-        return Err(Error::new(ErrorKind::ConnectionAborted, "Access denied"));
-      }
+    let data_from_socket = instance.read_signal(None)?;
+    if data_from_socket.contains(&AuthStatus::DENIED.to_string()) {
+      return Err(Error::new(ErrorKind::ConnectionAborted, "Access denied"));
     }
   
     return Ok(instance)
@@ -79,7 +77,7 @@ impl Connection {
       res_line.push_str(&buf_line);
   
       if res_line.ends_with("\r\n\r\n"){
-        if !res_line.contains(&SygnalHeader::WithMessage.to_string()) || headers_read {
+        if !res_line.contains(&SignalHeader::WithMessage.to_string()) || headers_read {
           break;
         }
         headers_read = true;
@@ -87,5 +85,14 @@ impl Connection {
     }
   
     Ok(res_line)
+  }
+}
+
+impl Clone for Connection {
+  fn clone(&self) -> Self {
+    Connection { 
+      stream: self.stream.try_clone().unwrap(), 
+      reader: BufReader::new(self.stream.try_clone().unwrap())
+    }
   }
 }

@@ -8,8 +8,7 @@ use crate::settings::Settings;
 
 #[derive(Debug, Clone)]
 pub struct UserData {
-  pub producer_address: Option<String>,
-  pub consumer_address: String,
+  pub address: String,
 }
 
 #[derive(Debug, Clone)]

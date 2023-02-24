@@ -9,6 +9,7 @@ mod state;
 mod service;
 mod managers;
 mod messages_pool;
+mod reader;
 
 fn main() -> Result<()> {
   let settings = Settings::new();
