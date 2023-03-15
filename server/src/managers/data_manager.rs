@@ -21,27 +21,12 @@ use super::types::{
   SignalType
 };
 
-pub fn process_incoming_message(messages_pool: Arc<Mutex<MessagesPool>>, signal: String) -> Result<()> {
-  let data = SignalData::from_str(&signal)?;
-
-  if !data.with_message || data.username.is_none() {
-    return Err(IncomingMessageError.into())
-  }
-
-  messages_pool.lock().push(PoolMessage {
-    id: Uuid::new_v4().to_string(),
-    username: data.username.clone().unwrap(),
-    message: data.message.clone().unwrap().trim().to_owned(),
-    from_server: false
-  });
-
-  Ok(())
-}
 pub trait DataManager {
   fn deny_auth(&mut self) -> Result<()>;
   fn auth(&mut self, signal: String) -> Result<SignalType>;
   fn remove_user(&mut self, username: String) -> Result<()>;
   fn process_messages_pool(&mut self, receiver: Receiver<()>) -> Result<()>;
+  fn process_incoming_message(messages_pool: Arc<Mutex<MessagesPool>>, signal: String) -> Result<()>;
 }
 
 impl DataManager for Manager {
@@ -136,6 +121,23 @@ impl DataManager for Manager {
       thread::sleep(Duration::from_millis(10));
     }
 
+    Ok(())
+  }
+
+  fn process_incoming_message(messages_pool: Arc<Mutex<MessagesPool>>, signal: String) -> Result<()> {
+    let data = SignalData::from_str(&signal)?;
+  
+    if !data.with_message || data.username.is_none() {
+      return Err(IncomingMessageError.into())
+    }
+  
+    messages_pool.lock().push(PoolMessage {
+      id: Uuid::new_v4().to_string(),
+      username: data.username.clone().unwrap(),
+      message: data.message.clone().unwrap().trim().to_owned(),
+      from_server: false
+    });
+  
     Ok(())
   }
 }

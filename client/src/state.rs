@@ -46,11 +46,12 @@ impl State {
 
   fn read_username(&mut self) -> io::Result<()> {
     println!("{}", termion::clear::All);
-    write!(std::io::stdout(), "Username: ")?;
+    print!("Username: ");
     std::io::stdout().flush()?;
-    let mut input = BufReader::new(std::io::stdin());
+
     let mut username = String::new();
-    input.read_line(&mut username)?;
+    io::stdin().read_line(&mut username)?;
+
     self.username = username.trim().to_owned();
     println!("{}", termion::clear::All);
 

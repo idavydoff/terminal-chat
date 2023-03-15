@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use service::Service;
 use settings::Settings;
-use state::{State};
+use state::State;
 
 mod settings;
 mod state;
@@ -13,7 +13,7 @@ mod reader;
 
 fn main() -> Result<()> {
   let settings = Settings::new();
-  let state = State::new(settings.to_owned());
+  let state = State::new(settings);
 
   Service::run(state)?;
   

@@ -3,10 +3,8 @@ use std::{
     Write, BufReader
   }, 
   time::Duration, 
-  thread, 
-  net::TcpStream, 
+  thread,
   sync::{
-    Arc, 
     mpsc::{
       self, 
       Sender
@@ -14,37 +12,16 @@ use std::{
   }
 };
 use anyhow::Result;
-use parking_lot::Mutex;
 
-use crate::{managers::{data_manager::DataManager, types::SignalType}, messages_pool::MessagesPool, reader::StreamReader};
+use crate::{managers::{data_manager::DataManager, types::SignalType}, reader::StreamReader};
 
-use super::{manager::Manager, data_manager::process_incoming_message};
-
-fn process_signals(stream: TcpStream, messages_pool: Arc<Mutex<MessagesPool>>, sender: Sender<()>) -> Result<()> {
-  let mut reader = BufReader::new(stream.try_clone()?);
-  loop {
-    let data_from_socket = match reader.read_signal(None) {
-      Ok(s) => s,
-      Err(_) => {
-        break;
-      }
-    };
-
-    match process_incoming_message(messages_pool.clone(), data_from_socket) {
-      Ok(_) => (),
-      Err(_) => println!("invalid message")
-    };
-  }
-
-  sender.send(())?;
-
-  Ok(())
-}
+use super::manager::Manager;
 
 pub trait StreamManager {
   fn process_connection(&mut self) -> Result<()>;
   fn process_disconnection(&mut self) -> Result<()>;
   fn send_data(&mut self, data: &str) -> Result<()>;
+  fn process_signals(&mut self, sender: Sender<()>) -> Result<()>;
 }
 
 impl StreamManager for Manager {
@@ -72,14 +49,8 @@ impl StreamManager for Manager {
     };
 
     if let SignalType::Connection = signal_type {
-      let cloned_stream = self.stream.try_clone()?;
-      let cloned_messages_pool = self.messages_pool.clone();
       let (channel_sender, channel_receiver) = mpsc::channel::<()>();
-      thread::spawn(move || -> Result<()> {
-        process_signals(cloned_stream, cloned_messages_pool, channel_sender)?;
-
-        Ok(())
-      });
+      self.process_signals(channel_sender)?;
       
       self.process_messages_pool(channel_receiver)?;
     }
@@ -98,6 +69,34 @@ impl StreamManager for Manager {
 
   fn send_data(&mut self, data: &str) -> Result<()> {
     self.stream.write(data.as_bytes())?;
+    Ok(())
+  }
+
+  fn process_signals(&mut self, sender: Sender<()>) -> Result<()> {
+    let cloned_stream = self.stream.try_clone()?;
+    let cloned_messages_pool = self.messages_pool.clone();
+
+    thread::spawn(move || -> Result<()> {
+      let mut reader = BufReader::new(cloned_stream.try_clone()?);
+      loop {
+        let data_from_socket = match reader.read_signal(None) {
+          Ok(s) => s,
+          Err(_) => {
+            break;
+          }
+        };
+
+        match Self::process_incoming_message(cloned_messages_pool.clone(), data_from_socket) {
+          Ok(_) => (),
+          Err(_) => println!("invalid message")
+        };
+      }
+
+      sender.send(())?;
+
+      Ok(())
+    });
+
     Ok(())
   }
 }

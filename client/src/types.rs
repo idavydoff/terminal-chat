@@ -23,25 +23,6 @@ impl fmt::Display for ParseSignalDataError {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AuthConnectionError;
-impl Error for AuthConnectionError {}
-impl fmt::Display for AuthConnectionError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "auth connection error")
-  }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct IncomingMessageError;
-impl Error for IncomingMessageError {}
-impl fmt::Display for IncomingMessageError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "incoming message error")
-  }
-}
-
-
 #[derive(Debug, Clone, Copy)]
 pub enum SignalType {
   Connection,

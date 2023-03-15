@@ -14,7 +14,7 @@ use std::{
   USER+SERVER:  SIGNAL_TYPE
 */
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct ParseSignalDataError;
 impl Error for ParseSignalDataError {}
 impl fmt::Display for ParseSignalDataError {
@@ -23,7 +23,7 @@ impl fmt::Display for ParseSignalDataError {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct AuthConnectionError;
 impl Error for AuthConnectionError {}
 impl fmt::Display for AuthConnectionError {
@@ -32,7 +32,7 @@ impl fmt::Display for AuthConnectionError {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct IncomingMessageError;
 impl Error for IncomingMessageError {}
 impl fmt::Display for IncomingMessageError {
