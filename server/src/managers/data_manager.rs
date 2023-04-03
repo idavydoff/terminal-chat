@@ -9,10 +9,7 @@ use uuid::Uuid;
 
 use crate::messages_pool::{PoolMessage, MessagesPool};
 use crate::state::UserData;
-
-use super::manager::Manager;
-use super::stream_manager::StreamManager;
-use super::types::{
+use crate::types::{
   AuthStatus, 
   SignalData, 
   SignalHeader, 
@@ -21,9 +18,12 @@ use super::types::{
   SignalType
 };
 
+use super::manager::Manager;
+use super::stream_manager::StreamManager;
+
 pub trait DataManager {
   fn deny_auth(&mut self) -> Result<()>;
-  fn auth(&mut self, signal: String) -> Result<SignalType>;
+  fn auth(&mut self, signal: String) -> Result<()>;
   fn remove_user(&mut self, username: String) -> Result<()>;
   fn process_messages_pool(&mut self, receiver: Receiver<()>) -> Result<()>;
   fn process_incoming_message(messages_pool: Arc<Mutex<MessagesPool>>, signal: String) -> Result<()>;
@@ -40,7 +40,7 @@ impl DataManager for Manager {
     Ok(())
   }
 
-  fn auth(&mut self, signal: String) -> Result<SignalType> {
+  fn auth(&mut self, signal: String) -> Result<()> {
     let data = SignalData::from_str(&signal)?;
 
     match data.signal_type.unwrap() {
@@ -73,7 +73,7 @@ impl DataManager for Manager {
     );
 
     self.send_data(&response.to_string())?;
-    Ok(data.signal_type.unwrap())
+    Ok(())
   }
 
   fn remove_user(&mut self, username: String) -> Result<()> {
@@ -114,7 +114,7 @@ impl DataManager for Manager {
           if message.from_server {
             syg_vec.push(SignalHeader::ServerMessage);
           }
-          let response = SignalData::new(syg_vec,Some(&message.message));
+          let response = SignalData::new(syg_vec, Some(&message.message));
           self.send_data(&response.to_string())?;
         }
       }

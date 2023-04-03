@@ -52,11 +52,9 @@ impl Service {
     let mut connection = self.connection.clone();
     thread::spawn(move || -> io::Result<()> {
       loop {
-        let data_from_socket = match connection.read_signal(None) {
+        let data_from_socket = match connection.read_signal() {
           Ok(v) => v,
-          Err(_) => {
-            break;
-          }
+          Err(_) => break
         };
         let signal = SignalData::from_str(&data_from_socket);
         let mut messages = messages.lock();
@@ -74,13 +72,19 @@ impl Service {
               );
             }
             else {
-              messages.push(format!("<{}> {}", s.username.unwrap(), s.message.unwrap()));
+              messages.push(
+                format!(
+                  "<{}> {}", 
+                  s.username.unwrap(), 
+                  s.message.unwrap()
+                )
+              );
             }
           }
         }
         match tx.send(()) {
           Ok(_) => {},
-          Err(_) => continue
+          Err(_) => break
         };
       }
   
@@ -101,30 +105,24 @@ impl Service {
           Err(_) => break
         };
         print!("{}", termion::clear::All);
-        for (index, m) in (&*messages.lock()).iter().enumerate() {
+        for (index, m) in messages.lock().iter().enumerate() {
           if index == 0 {
-            write!(
-              std::io::stdout(), 
-              "\r\n{m}\r\n"
-            )?;
+            print!("\r\n{m}\r\n");
           }
           else {
-            write!(
-              std::io::stdout(), 
-              "{m}\r\n"
-            )?;
+            print!("{m}\r\n");
           }
         }
         let input = user_input.lock().clone();
-        write!(
-          std::io::stdout(), 
+        print!(
           "{}{}{} >{} {}", 
           termion::color::Bg(termion::color::White), 
           termion::color::Fg(termion::color::Black), 
           username, 
           termion::style::Reset,
           input
-        )?;
+        );
+
         std::io::stdout().flush()?;
       }
       Ok(())
@@ -145,8 +143,8 @@ impl Service {
 
   pub fn read_inputs(&mut self) {
     let stdout = io::stdout().into_raw_mode().unwrap(); // НЕЛЬЗЯ УБИРАТЬ
-    let mut stdin = termion::async_stdin().keys();
-  
+    let mut stdin = io::stdin().keys();
+
     loop {
       let input = stdin.next();
   
@@ -158,7 +156,7 @@ impl Service {
             if ms == "" {
               match self.state.chat_reload_sender.send(()) {
                 Ok(_) => {},
-                Err(_) => continue, 
+                Err(_) => break, 
               };
               continue;
             }
@@ -178,7 +176,7 @@ impl Service {
             self.state.user_input.lock().pop();
             match self.state.chat_reload_sender.send(()) {
               Ok(_) => {},
-              Err(_) => continue, 
+              Err(_) => break, 
             };
           }
           termion::event::Key::Char(k) => {
@@ -186,7 +184,7 @@ impl Service {
             self.state.user_input.lock().push_str(&k.to_string());
             match self.state.chat_reload_sender.send(()) {
               Ok(_) => {},
-              Err(_) => continue, 
+              Err(_) => break, 
             };
           },
           _ => {

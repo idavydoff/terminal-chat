@@ -31,14 +31,14 @@ impl Connection {
     );
     let mut connection = TcpStream::connect(address)?;
     connection.write_all(signal.to_string().as_bytes())?;
-    let reader = io::BufReader::new(connection.try_clone()?);
+    let reader = BufReader::new(connection.try_clone()?);
 
     let mut instance = Connection {
       stream: connection,
       reader
     };
 
-    let data_from_socket = instance.read_signal(None)?;
+    let data_from_socket = instance.read_signal()?;
     if data_from_socket.contains(&AuthStatus::DENIED.to_string()) {
       return Err(Error::new(ErrorKind::ConnectionAborted, "Access denied"));
     }
@@ -46,33 +46,15 @@ impl Connection {
     return Ok(instance)
   }
 
-  pub fn read_signal(&mut self, max_read_try: Option<u8>) -> io::Result<String> {
+  pub fn read_signal(&mut self) -> io::Result<String> {
     let mut res_line = String::new();
     let mut headers_read = false;
-    let mut fail_reads_count: u8 = 0;
     loop {
       let mut buf_line = String::new();
       match self.reader.read_line(&mut buf_line) {
-        Err(e) => {
-          match e.kind() {
-            io::ErrorKind::WouldBlock => {
-              if let Some(max_fails) = max_read_try {
-                fail_reads_count += 1;
-                if fail_reads_count == max_fails {
-                  return Err(Error::new(ErrorKind::ConnectionAborted, "Connection aborted"))
-                }
-              }
-              continue;
-            },
-            _ => panic!("Got an error: {}", e),
-          }
-        },
-        Ok(m) => {
-          if m == 0 {
-            return Err(Error::new(ErrorKind::BrokenPipe, "Connection closed"))
-          }
-          m
-        },
+        Err(e) => panic!("Got an error: {}", e),
+        Ok(0) => return Err(Error::new(ErrorKind::BrokenPipe, "Connection closed")),
+        Ok(_) => (),
       };
       res_line.push_str(&buf_line);
   

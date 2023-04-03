@@ -7,11 +7,10 @@ use std::{
 /*
   Сигнал может содержать следующие хедеры
   USER:         USERNAME
-  USER:         PASSWORD 
-  USER:         KEY 
   SERVER:       AUTH_STATUS
   USER+SERVER:  WITH_MESSAGE
   USER+SERVER:  SIGNAL_TYPE
+  SERVER:       SERVER_MESSAGE
 */
 
 #[derive(Debug)]
@@ -100,8 +99,6 @@ impl ToString for AuthStatus {
 
 pub enum SignalHeader {
   Username(String),
-  Password(String),
-  Key(String),
   AuthStatus(AuthStatus),
   SignalType(SignalType),
   WithMessage,
@@ -116,8 +113,6 @@ impl FromStr for SignalHeader {
 
     match header {
       "USERNAME" => Ok(SignalHeader::Username(value.trim().to_owned())),
-      "PASSWORD" => Ok(SignalHeader::Password(value.trim().to_owned())),
-      "KEY" => Ok(SignalHeader::Key(value.trim().to_owned())),
       "AUTH_STATUS" => {
         match AuthStatus::from_str(value.trim()) {
           Ok(v) => return Ok(SignalHeader::AuthStatus(v)),
@@ -141,8 +136,6 @@ impl ToString for SignalHeader {
   fn to_string(&self) -> String {
     match self {
       SignalHeader::Username(v) => format!("USERNAME: {v}\r\n"),
-      SignalHeader::Password(v) => format!("PASSWORD: {v}\r\n"),
-      SignalHeader::Key(v) => format!("KEY: {v}\r\n"),
       SignalHeader::AuthStatus(v) => format!("AUTH_STATUS: {}\r\n", v.to_string()),
       SignalHeader::SignalType(v) => format!("SIGNAL_TYPE: {}\r\n", v.to_string()),
       SignalHeader::WithMessage => "WITH_MESSAGE\r\n".to_owned(),
@@ -180,12 +173,6 @@ impl SignalData {
       match header {
         SignalHeader::Username(v) => {
           data.username = Some(v);
-        },
-        SignalHeader::Password(v) => {
-          data.password = Some(v);
-        },
-        SignalHeader::Key(v) => {
-          data.key = Some(v);
         },
         SignalHeader::AuthStatus(v) => {
           data.auth_status = Some(v);
@@ -232,12 +219,6 @@ impl FromStr for SignalData {
         SignalHeader::Username(v) => {
           data.username = Some(v);
         },
-        SignalHeader::Password(v) => {
-          data.password = Some(v);
-        },
-        SignalHeader::Key(v) => {
-          data.key = Some(v);
-        },
         SignalHeader::AuthStatus(v) => {
           data.auth_status = Some(v);
         },
@@ -283,12 +264,6 @@ impl ToString for SignalData {
 
     if let Some(v) = &self.username {
       res_str.push_str(&SignalHeader::Username(v.to_owned()).to_string());
-    }
-    if let Some(v) = &self.password {
-      res_str.push_str(&SignalHeader::Password(v.to_owned()).to_string());
-    }
-    if let Some(v) = &self.key {
-      res_str.push_str(&SignalHeader::Key(v.to_owned()).to_string());
     }
     if let Some(v) = &self.auth_status {
       res_str.push_str(&SignalHeader::AuthStatus(v.clone()).to_string());

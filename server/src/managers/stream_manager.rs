@@ -2,18 +2,15 @@ use std::{
   io::{
     Write, BufReader
   }, 
-  time::Duration, 
   thread,
-  sync::{
-    mpsc::{
-      self, 
-      Sender
-    }
+  sync::mpsc::{
+    self, 
+    Sender
   }
 };
 use anyhow::Result;
 
-use crate::{managers::{data_manager::DataManager, types::SignalType}, reader::StreamReader};
+use crate::{managers::data_manager::DataManager, reader::StreamReader};
 
 use super::manager::Manager;
 
@@ -26,12 +23,11 @@ pub trait StreamManager {
 
 impl StreamManager for Manager {
   fn process_connection(&mut self) -> Result<()> {
-    self.stream.set_read_timeout(Some(Duration::from_millis(1000)))?;
     println!("Connection established - {}", self.connected_peer_addr);
 
     let auth_data = match BufReader::new(
       self.stream.try_clone()?
-    ).read_signal(Some(25)) {
+    ).read_signal() {
       Ok(v) => v,
       Err(_) => {
         self.process_disconnection()?;
@@ -39,21 +35,16 @@ impl StreamManager for Manager {
       }
     };
 
-    let signal_type = match self.auth(auth_data.clone()) {
-      Ok(v) => v,
-      Err(_) => {
-        self.deny_auth()?;
-        self.process_disconnection()?;
-        return Ok(())
-      }
-    };
-
-    if let SignalType::Connection = signal_type {
-      let (channel_sender, channel_receiver) = mpsc::channel::<()>();
-      self.process_signals(channel_sender)?;
-      
-      self.process_messages_pool(channel_receiver)?;
+    if self.auth(auth_data.clone()).is_err() {
+      self.deny_auth()?;
+      self.process_disconnection()?;
+      return Ok(())
     }
+
+    let (channel_sender, channel_receiver) = mpsc::channel::<()>();
+    self.process_signals(channel_sender)?;
+    
+    self.process_messages_pool(channel_receiver)?;
 
     self.process_disconnection()?;
     Ok(())
@@ -79,7 +70,7 @@ impl StreamManager for Manager {
     thread::spawn(move || -> Result<()> {
       let mut reader = BufReader::new(cloned_stream.try_clone()?);
       loop {
-        let data_from_socket = match reader.read_signal(None) {
+        let data_from_socket = match reader.read_signal() {
           Ok(s) => s,
           Err(_) => {
             break;

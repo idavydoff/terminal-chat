@@ -39,9 +39,10 @@ impl MessagesPool {
 
   pub fn push(&mut self, v: PoolMessage) {
     if self.length == 256 {
-      let mut new_indexes: HashMap<String, u8> = HashMap::new();
       self.pool.pop_front();
       self.pool.push_back(v);
+
+      let mut new_indexes: HashMap<String, u8> = HashMap::new();
       for (index, message) in self.pool.iter().enumerate() {
         new_indexes.insert(message.id.clone(), index as u8);
       }
