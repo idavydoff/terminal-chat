@@ -1,14 +1,14 @@
 [package]
 name = "tchat"
-version = "0.1.0"
+version = "0.1.2"
 authors = ["Ivan Davydov davydoff33@yandex.ru"]
 license = "MIT"
 description = "Client for tchat-server."
 readme = "README.md"
 homepage = "https://github.com/IDSaves/terminal-chat"
 repository = "https://github.com/IDSaves/terminal-chat"
-keywords = ["cli", "chat-client"]
-categories = ["command-line-utilities"]
+keywords = ["cli", "chat-client", "terminal", "chat"]
+categories = ["command-line-utilities", "chat", "terminal"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

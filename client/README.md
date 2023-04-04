@@ -1,4 +1,5 @@
 # Terminal Chat client
+![demo](https://drop.davy.page/hRMXlkDN/Mar-01-2023%2013-44-04.gif)
 
 ## How to use the terminal chat client?
 0. Install the app via cargo package manager

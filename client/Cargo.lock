@@ -289,7 +289,7 @@ dependencies = [
 
 [[package]]
 name = "tchat"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "clap",
  "parking_lot",
