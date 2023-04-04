@@ -8,7 +8,9 @@ pub struct Service;
 
 impl Service {
   pub fn run(state: State) -> Result<()> {
-    let listener = TcpListener::bind(format!("127.0.0.1:{}", state.get().settings.port))?;
+    let listener = TcpListener::bind(format!("0.0.0.0:{}", state.get().settings.port))?;
+
+    println!("Running!");
 
     let messages_pool = Arc::new(Mutex::new(MessagesPool::new()));
 

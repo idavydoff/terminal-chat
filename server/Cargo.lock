@@ -70,16 +70,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cli-chat-server"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "parking_lot",
- "uuid",
-]
-
-[[package]]
 name = "errno"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -297,6 +287,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "tchat-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "parking_lot",
+ "uuid",
 ]
 
 [[package]]
